@@ -3,68 +3,80 @@
 Determine whether a website supports HSTS.
 """
 
+import dns.resolver
 import requests
 import sys
 import socket
 
-def is_ipv4(s):
-    # Feel free to improve this: https://stackoverflow.com/questions/11827961/checking-for-ip-addresses
-    return ':' not in s
-
 dns_cache = {}
 
-def add_custom_dns(domain, port, ip):
-    key = (domain, port)
-    # Strange parameters explained at:
-    # https://docs.python.org/2/library/socket.html#socket.getaddrinfo
-    # Values were taken from the output of `socket.getaddrinfo(...)`
-    if is_ipv4(ip):
-        value = (socket.AddressFamily.AF_INET, 1, 6, '', (ip, port))
-    else: # ipv6
-        value = (socket.AddressFamily.AF_INET6, 1, 6, '', (ip, port, 0, 0))
-    dns_cache[key] = [value]
+def check_all_addresses(hostname):
+  for address in get_addresses(hostname, record_type='A'):
+    has_hsts(hostname, address, is_ipv6=False)
+  for address in get_addresses(hostname, record_type='AAAA'):
+    has_hsts(hostname, address, is_ipv6=False)
+
+def get_addresses(hostname, record_type='A'):
+  try:
+    answers = dns.resolver.query(hostname, record_type)
+  except dns.resolver.NoAnswer:
+    print('No records of type %s found for %s .' % (record_type, hostname))
+    return []
+  addresses = list(map(lambda a: a.address, answers))
+  print('addresses found: %s' % (addresses,))
+  return addresses
+
+def add_custom_dns(hostname, port, ip_string, is_ipv6=False):
+  key = (hostname, port)
+  # Strange parameters explained at:
+  # https://docs.python.org/2/library/socket.html#socket.getaddrinfo
+  # Values were taken from the output of `socket.getaddrinfo(...)`
+  if is_ipv6:
+    value = (socket.AddressFamily.AF_INET6, 1, 6, '', (ip_string, port, 0, 0))
+  else:
+    value = (socket.AddressFamily.AF_INET, 1, 6, '', (ip_string, port))
+  dns_cache[key] = [value]
 
 # Inspired by: https://stackoverflow.com/a/15065711/868533
 prv_getaddrinfo = socket.getaddrinfo
 def new_getaddrinfo(*args):
-    # Uncomment to see what calls to `getaddrinfo` look like.
-    try:
-        return dns_cache[args[:2]] # hostname and port
-    except KeyError:
-        return prv_getaddrinfo(*args)
+  # Uncomment to see what calls to `getaddrinfo` look like.
+  try:
+    return dns_cache[args[:2]] # hostname and port
+  except KeyError:
+    return prv_getaddrinfo(*args)
 
 socket.getaddrinfo = new_getaddrinfo
 
-def has_hsts(site, ip_address):
-  """
-  Connect to target site and check its headers."
-  """
-  add_custom_dns(site, 443, ip_address)
+def has_hsts(site, ip_string, is_ipv6=False):
+  # print("checking %s at address %s" % (site, ip_string))
+  add_custom_dns(site, 443, ip_string, is_ipv6)
   try:
     req = requests.get('https://' + site)
   except requests.exceptions.SSLError as error:
-    print("doesn't have SSL working properly (%s)" % (error, ))
+    print("%s(%s) doesn't have SSL working properly (%s)" %
+          (site, ip_string, error, ))
     return False
   if req.headers.get('strict-transport-security') == 'max-age=31536000; includeSubDomains; preload':
-    print("yes")
+    print("%s(%s) appears to have correct HSTS!" %
+          (site, ip_string,))
     return True
   else:
     print("no")
     return False
 
 
-def main(domain, ip_address):
+def main(hostname):
   """
   Main functionality.
   """
-  print('[+] checking whether %s supports HSTS...' % (domain, ),)
-  return has_hsts(domain, ip_address)
+  check_all_addresses(hostname)
 
 if __name__ == '__main__':
   print(sys.argv)
-  if len(sys.argv) < 2:
-    print('usage: %s domain IP' % (sys.argv[0], ))
+  if len(sys.argv) != 2:
+    print('usage: %s hostname' % (sys.argv[0], ))
     exit(1)
 
-  main(sys.argv[1], sys.argv[2])
+  main(sys.argv[1])
 
