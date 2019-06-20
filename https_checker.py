@@ -14,7 +14,7 @@ def check_all_addresses(hostname):
   for address in get_addresses(hostname, record_type='A'):
     has_hsts(hostname, address, is_ipv6=False)
   for address in get_addresses(hostname, record_type='AAAA'):
-    has_hsts(hostname, address, is_ipv6=False)
+    has_hsts(hostname, address, is_ipv6=True)
 
 def get_addresses(hostname, record_type='A'):
   try:
