@@ -57,12 +57,14 @@ def has_hsts(site, ip_string, is_ipv6=False):
     print("%s(%s) doesn't have SSL working properly (%s)" %
           (site, ip_string, error, ))
     return False
-  if req.headers.get('strict-transport-security') == 'max-age=31536000; includeSubDomains; preload':
+  sts_header = req.headers.get('strict-transport-security')
+  if sts_header == 'max-age=31536000; includeSubDomains; preload':
     print("%s(%s) appears to have correct HSTS!" %
           (site, ip_string,))
     return True
   else:
-    print("no")
+    print('%s(%s) did not return the expected strict-transport security '
+          'header. Header returned: %s' % (site, ip_string, sts_header,))
     return False
 
 
