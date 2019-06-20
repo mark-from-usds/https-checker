@@ -53,6 +53,13 @@ def has_hsts(site, ip_string, is_ipv6=False):
   add_custom_dns(site, 443, ip_string, is_ipv6)
   try:
     req = requests.get('https://' + site)
+  except requests.exceptions.ConnectionError as error:
+    message = '%s(%s) couldn\'t be reached: %s' % (site, ip_string, error, )
+    if is_ipv6:
+      message = ('%s - are you able to reach ipv6 addresses from this '
+                      'network?' % (message,))
+    print(message)
+    return False
   except requests.exceptions.SSLError as error:
     print("%s(%s) doesn't have SSL working properly (%s)" %
           (site, ip_string, error, ))
