@@ -8,7 +8,19 @@ import requests
 import sys
 import socket
 
-dns_cache = {}
+# TODO: Stop using globals for all this stuff.
+global_dns_cache = {}
+
+# Inspired by: https://stackoverflow.com/a/15065711/868533
+prv_getaddrinfo = socket.getaddrinfo
+def new_getaddrinfo(*args):
+  # Uncomment to see what calls to `getaddrinfo` look like.
+  try:
+    return global_dns_cache[args[:2]] # hostname and port
+  except KeyError:
+    return prv_getaddrinfo(*args)
+
+socket.getaddrinfo = new_getaddrinfo
 
 def check_all_addresses(hostname):
   for address in get_addresses(hostname, record_type='A'):
@@ -35,18 +47,7 @@ def add_custom_dns(hostname, port, ip_string, is_ipv6=False):
     value = (socket.AddressFamily.AF_INET6, 1, 6, '', (ip_string, port, 0, 0))
   else:
     value = (socket.AddressFamily.AF_INET, 1, 6, '', (ip_string, port))
-  dns_cache[key] = [value]
-
-# Inspired by: https://stackoverflow.com/a/15065711/868533
-prv_getaddrinfo = socket.getaddrinfo
-def new_getaddrinfo(*args):
-  # Uncomment to see what calls to `getaddrinfo` look like.
-  try:
-    return dns_cache[args[:2]] # hostname and port
-  except KeyError:
-    return prv_getaddrinfo(*args)
-
-socket.getaddrinfo = new_getaddrinfo
+  global_dns_cache[key] = [value]
 
 def has_hsts(site, ip_string, is_ipv6=False):
   # print("checking %s at address %s" % (site, ip_string))
