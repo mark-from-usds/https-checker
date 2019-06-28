@@ -65,16 +65,26 @@ def has_hsts(site, ip_string, is_ipv6=False):
     print("%s(%s) doesn't have SSL working properly (%s)" %
           (site, ip_string, error, ))
     return False
+
+  all_responses_good = True
+  if response.history:
+    for resp in response.history:
+      all_responses_good &= check_response_hsts(ip_string, resp)
+  # Either way check the final redirect landing point.
+  all_responses_good = check_response_hsts(ip_string, response)
+  return all_responses_good
+
+def check_response_hsts(ip_string, response):
   sts_header = response.headers.get('strict-transport-security')
   if sts_header == 'max-age=31536000; includeSubDomains; preload':
     print("%s(%s) appears to have correct HSTS!" %
-          (site, ip_string,))
+          (response.url, ip_string,))
     return True
   else:
     print('%s(%s) did not return the expected strict-transport security '
-          'header. Header returned: %s' % (site, ip_string, sts_header,))
+          'header. Header returned: %s' % (
+            response.url, ip_string, sts_header,))
     return False
-
 
 def main(hostname):
   """
