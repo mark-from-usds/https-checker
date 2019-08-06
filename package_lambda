@@ -1,0 +1,9 @@
+#!/bin/sh
+
+OUTPUT_ABSOLUTE=${PWD}/https_checker_lambda.zip
+
+VENV=$(pipenv --venv)
+pushd ${VENV}/lib/python3.7/site-packages
+zip -r9 ${OUTPUT_ABSOLUTE} ./*
+popd
+zip -r9 ${OUTPUT_ABSOLUTE} *.py
