@@ -86,6 +86,10 @@ def check_response_hsts(ip_string, response):
             response.url, ip_string, sts_header,))
     return False
 
+def lambda_handler(event, context):
+  print('Beginning Lambda handler for event: {a}'.format(a=event))
+  check_all_addresses(event['hostname'])
+
 def main(hostname):
   """
   Main functionality.
