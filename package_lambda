@@ -1,6 +1,7 @@
 #!/bin/sh
 
-OUTPUT_ABSOLUTE=${PWD}/https_checker_lambda.zip
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+OUTPUT_ABSOLUTE=${PWD}/https_checker_lambda_${TIMESTAMP}.zip
 
 VENV=$(pipenv --venv)
 pushd ${VENV}/lib/python3.7/site-packages
