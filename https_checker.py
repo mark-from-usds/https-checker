@@ -127,8 +127,7 @@ def main(hostname):
   """
   Main functionality.
   """
-  cloudwatch = boto3.client('cloudwatch')
-  check_and_report_all_addresses(cloudwatch, hostname)
+  check_all_addresses(hostname)
 
 if __name__ == '__main__':
   print(sys.argv)
