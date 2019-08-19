@@ -3,6 +3,7 @@
 Determine whether a website supports HSTS.
 """
 
+import boto3
 import dns.resolver
 import requests
 import sys
@@ -23,10 +24,12 @@ def new_getaddrinfo(*args):
 socket.getaddrinfo = new_getaddrinfo
 
 def check_all_addresses(hostname):
+  verdicts = {}
   for address in get_addresses(hostname, record_type='A'):
-    has_hsts(hostname, address, is_ipv6=False)
+    verdicts[address] = has_hsts(hostname, address, is_ipv6=False)
   for address in get_addresses(hostname, record_type='AAAA'):
-    has_hsts(hostname, address, is_ipv6=True)
+    verdicts[address] = has_hsts(hostname, address, is_ipv6=True)
+  return verdicts
 
 def get_addresses(hostname, record_type='A'):
   try:
@@ -86,15 +89,46 @@ def check_response_hsts(ip_string, response):
             response.url, ip_string, sts_header,))
     return False
 
+def put_cloudwatch_metric(client, hostname, address, verdict):
+  response = client.put_metric_data(
+    Namespace = 'mark-test-hsts',
+        MetricData=[
+          {
+              'MetricName': 'hsts_correct',
+              'Dimensions': [
+                  {
+                      'Name': 'hostname',
+                      'Value': hostname
+                  },
+                  {
+                      'Name': 'ip_address',
+                      'Value': address
+                  },
+              ],
+              # Cloudwatch metrics cannot be boolean so we return 1 or 0
+              'Value': int(verdict),
+          },
+      ]
+  )
+  print('response: {response}'.format(response=response))
+
+def check_and_report_all_addresses(cloudwatch, hostname):
+  verdicts = check_all_addresses(hostname)
+  for address in verdicts:
+    put_cloudwatch_metric(cloudwatch, hostname, address, verdicts[address])
+
 def lambda_handler(event, context):
   print('Beginning Lambda handler for event: {a}'.format(a=event))
-  check_all_addresses(event['hostname'])
+  hostname = event['hostname']
+  cloudwatch = boto3.client('cloudwatch')
+  check_and_report_all_addresses(cloudwatch, hostname)
 
 def main(hostname):
   """
   Main functionality.
   """
-  check_all_addresses(hostname)
+  cloudwatch = boto3.client('cloudwatch')
+  check_and_report_all_addresses(cloudwatch, hostname)
 
 if __name__ == '__main__':
   print(sys.argv)
