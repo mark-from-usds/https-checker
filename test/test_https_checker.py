@@ -13,7 +13,7 @@ class TestHTTPSChecker(unittest.TestCase):
       aws_access_key_id='ACCESS_KEY',
       aws_secret_access_key='SECRET_KEY')
     stubber = Stubber(cloudwatch)
-    stubber.add_response('put_metric_data', {})# {'person_who_fails': 'mark'})
+    stubber.add_response('put_metric_data', {})
     with stubber:
       https_checker.put_cloudwatch_metric(cloudwatch, 'www.vee_ay.gov', '1.2.3.4', False)
 
