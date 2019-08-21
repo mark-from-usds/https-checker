@@ -74,7 +74,7 @@ def has_hsts(site, ip_string, is_ipv6=False):
     for resp in response.history:
       all_responses_good &= check_response_hsts(ip_string, resp)
   # Either way check the final redirect landing point.
-  all_responses_good = check_response_hsts(ip_string, response)
+  all_responses_good &= check_response_hsts(ip_string, response)
   return all_responses_good
 
 def check_response_hsts(ip_string, response):
