@@ -78,8 +78,14 @@ def has_hsts(site, ip_string, is_ipv6=False):
   return all_responses_good
 
 def check_response_hsts(ip_string, response):
+  is_sts_header_valid = False
+
   sts_header = response.headers.get('strict-transport-security')
-  if sts_header == 'max-age=31536000; includeSubDomains; preload':
+  if sts_header:
+    sts_header_tokens = set([t.strip() for t in sts_header.split(';')])
+    is_sts_header_valid = (sts_header_tokens == set(['max-age=31536000', 'includeSubDomains', 'preload']))
+
+  if is_sts_header_valid:
     print("%s(%s) appears to have correct HSTS!" %
           (response.url, ip_string,))
     return True
