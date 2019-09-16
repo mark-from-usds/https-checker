@@ -5,6 +5,6 @@ OUTPUT_ABSOLUTE=${PWD}/https_checker_lambda_${TIMESTAMP}.zip
 
 VENV=$(pipenv --venv)
 pushd ${VENV}/lib/python3.7/site-packages
-zip -r9 ${OUTPUT_ABSOLUTE} ./* -x "./test/*" "./package_lambda"
+zip -r9 ${OUTPUT_ABSOLUTE} ./*
 popd
 zip -r9 ${OUTPUT_ABSOLUTE} *.py
